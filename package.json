@@ -1,11 +1,11 @@
 {
   "name": "pacman",
-  "version": "0.0.1",
+  "version": "1.5.0",
   "description": "Pac-Man Node.js Game",
-  "author": "Ivan Font <ivan@ivanfont.com>",
+  "author": "Daniel Kofler <daniel.kofler@nts.eu>",
   "main": "bin/server.js",
   "scripts": {
-    "start": "node .",
+    "start": "node -r @splunk/otel/instrument .",
     "dev": "nodemon ."
   },
   "license": "GPLv3",
