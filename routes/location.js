@@ -160,6 +160,11 @@ async function makeHttpsRequest(options, cloudName) {
             res.on('data', (chunk) => (data += chunk));
             res.on('end', () => {
                 console.log(`${cloudName} Metadata:`, data);
+
+                const zone = cloudName === "Kubernetes"
+                    ? "local"
+                    : data.trim();
+                    
                 resolve({ cloud: cloudName, zone: data.trim() });
             });
         });

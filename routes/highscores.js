@@ -4,8 +4,6 @@ const Database = require('../lib/database');
 
 const router = express.Router();
 
-const { gamesStartedCounter, scoreHistogram, livesLostCounter } = require('../lib/metrics');
-
 // Create application/x-www-form-urlencoded parser
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
@@ -94,19 +92,6 @@ router.post('/', urlencodedParser, async (req, res, next) => {
 
         next(err); // Pass the error to the Express error handler
     }
-});
-
-// When a new game starts
-router.post('/game/start', (req, res) => {
-  gamesStartedCounter.add(1, { 'player.zone': req.body.zone || 'unknown' });
-  // ... rest of handler
-});
-
-// When a score is submitted
-router.post('/highscores', (req, res) => {
-  const { score, level } = req.body;
-  scoreHistogram.record(score, { level: String(level) });
-  // ... save to DB
 });
 
 module.exports = router;
