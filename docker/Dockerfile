@@ -10,6 +10,7 @@ RUN git clone https://github.com/fox27374/pacman.git .
 # Install app dependencies
 RUN npm install
 RUN npm install @splunk/otel
+RUN npm install @opentelemetry/api
 
 # Expose port 8080
 EXPOSE 8080
