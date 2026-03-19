@@ -1,11 +1,21 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const Database = require('../lib/database');
-
+const { trace, context } = require('@opentelemetry/api');
 const router = express.Router();
+
+const tracer = trace.getTracer('user-router');
 
 // Middleware that logs the time of the request
 router.use((req, res, next) => {
+
+    tracer.startActiveSpan('c_middleware', (span) => {
+        span.setAttributes({
+            'c.http.method': req.method,
+            'c.http.route': req.originalUrl,
+        });
+        span.end();
+    });
     console.log('Time:', new Date());
     next();
 });
@@ -13,6 +23,8 @@ router.use((req, res, next) => {
 // Route: Generate a new user ID
 router.get('/id', async (req, res, next) => {
     console.log('[GET /user/id]');
+
+    const span = tracer.startSpan('GET /user/id');
 
     try {
         const db = await Database.getDb(req.app); // Get the database instance
@@ -24,15 +36,26 @@ router.get('/id', async (req, res, next) => {
         const userId = result.insertedId;
         console.log('Successfully inserted new user ID =', userId);
 
+        tracer.startActiveSpan('c_id', (span) => {
+            span.setAttributes({
+                'c.app.user.id': userId.toString(),
+                'c.app.operation': 'create_user_id',
+            });
+            span.end();
+        });
+
         res.json(userId); // Respond with the generated ObjectId
     } catch (err) {
         console.error('Failed to insert new user ID:', err);
+        span.recordException(err);
+        span.setStatus({ code: 2, message: err.message });
         next(err); // Pass the error to the Express error handler
     }
 });
 
 // Route: Update user stats
 router.post('/stats', express.urlencoded({ extended: false }), async (req, res, next) => {
+
     console.log('[POST /user/stats]\n',
         ' body =', req.body, '\n',
         ' host =', req.headers.host,
@@ -45,6 +68,14 @@ router.post('/stats', express.urlencoded({ extended: false }), async (req, res, 
     const userET = parseInt(req.body.elapsedTime, 10);
 
     try {
+        tracer.startActiveSpan('c_stats', (span) => {
+            span.setAttributes({
+            'c.http.user_agent': req.headers['user-agent'],
+            'c.http.client_ip': req.ip,
+            });
+            span.end();
+        });
+
         const db = await Database.getDb(req.app); // Get the database instance
 
         const result = await db.collection('userstats').updateOne(
@@ -80,6 +111,8 @@ router.post('/stats', express.urlencoded({ extended: false }), async (req, res, 
             console.log('No matching user found for update');
         }
 
+        span.setAttribute('c.app.result', returnStatus);
+
         res.json({ rs: returnStatus }); // Respond with the status
     } catch (err) {
         console.error('Error updating user stats:', err);
@@ -89,6 +122,8 @@ router.post('/stats', express.urlencoded({ extended: false }), async (req, res, 
 
 // Route: Retrieve all user stats
 router.get('/stats', async (req, res, next) => {
+    const span = tracer.startSpan('GET /user/stats');
+
     console.log('[GET /user/stats]');
 
     try {
@@ -98,6 +133,11 @@ router.get('/stats', async (req, res, next) => {
             .find({ score: { $exists: true } }) // Filter for documents with a `score` field
             .sort({ _id: 1 }) // Sort by `_id` in ascending order
             .toArray(); // Convert the cursor to an array
+
+        tracer.startActiveSpan('c_middleware', (span) => {
+            span.setAttribute('c.db.result_count', docs.length);
+            span.end();
+        });
 
         const result = docs.map(item => ({
             cloud: item.cloud,
@@ -113,6 +153,8 @@ router.get('/stats', async (req, res, next) => {
         res.json(result); // Respond with the user stats
     } catch (err) {
         console.error('Error fetching user stats:', err);
+        span.recordException(err);
+        span.setStatus({ code: 2, message: err.message });
         next(err); // Pass the error to the Express error handler
     }
 });

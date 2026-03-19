@@ -5,7 +5,8 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Clone game source code
-RUN git clone https://github.com/fox27374/pacman.git .
+#RUN git clone https://github.com/fox27374/pacman.git .
+COPY app/ .
 
 # Install app dependencies
 RUN npm install

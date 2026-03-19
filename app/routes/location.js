@@ -165,7 +165,7 @@ async function makeHttpsRequest(options, cloudName) {
                     ? "local"
                     : data.trim();
                     
-                resolve({ cloud: cloudName, zone: data.trim() });
+                resolve({ cloud: cloudName, zone });
             });
         });
 

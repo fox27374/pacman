@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacman
+  namespace: consultant
+  labels:
+    app: pacman
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacman
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: "true"
+      labels:
+        app: pacman
+    spec:
+      containers:
+      - name: pacman
+        image: 172.24.89.181:5000/pacman-nodejs-app:1.7.7
+        env:
+        - name: MONGO_SERVICE_HOST
+          value: mongodb.consultant.svc.cluster.local
+        - name: OTEL_SERVICE_NAME
+          value: pacman
+        - name: OTEL_LOG_LEVEL
+          value: debug
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://splunk-otel-collector-agent.splunk-otel-collector.svc.cluster.local:4318
+        - name: MY_NODE_NAME
+          value: kof-ibk-debian-2
+        ports:
+        - containerPort: 8080

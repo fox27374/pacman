@@ -1,6 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const Database = require('../lib/database');
+const { trace, context } = require('@opentelemetry/api');
+
+const tracer = trace.getTracer('highscores-router');
 
 const router = express.Router();
 
@@ -17,6 +20,7 @@ router.use((req, res, next) => {
 router.get('/list', urlencodedParser, async (req, res, next) => {
     console.log('[GET /highscores/list]');
     try {
+        const span = tracer.startSpan('GET /highscores/list');
         const db = await Database.getDb(req.app); // Get the database instance
         const collection = db.collection('highscore');
 
@@ -36,6 +40,7 @@ router.get('/list', urlencodedParser, async (req, res, next) => {
             score: item.score,
         }));
 
+        span.setAttribute('c.highscore.score', '13');
         res.json(result); // Respond with the high scores
     } catch (err) {
         console.error('Error fetching high scores:', err);
@@ -69,6 +74,7 @@ router.post('/', urlencodedParser, async (req, res, next) => {
             hostname: req.hostname,
             ip_addr: req.ip,
         });
+        
 
         console.log('Successfully inserted high score:', result.insertedId);
 
@@ -79,6 +85,7 @@ router.post('/', urlencodedParser, async (req, res, next) => {
             level: userLevel,
             rs: 'success',
         });
+
     } catch (err) {
         console.error('Error inserting high score:', err);
 
